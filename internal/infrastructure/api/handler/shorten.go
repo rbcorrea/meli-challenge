@@ -2,31 +2,22 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/rbcorrea/meli-challenge/internal/application/dto"
+	"github.com/rbcorrea/meli-challenge/internal/application/usecase"
 )
 
-type shortenedURLResponse struct {
-	ShortenedURL string `json:"shortened_url"`
-	OriginalURL  string `json:"original_url"`
-}
-
-func ShortenURL() fiber.Handler {
+func ShortenURL(shortenUseCase *usecase.ShortenURLUseCase) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-
-		var request struct {
-			URL string `json:"url"`
-		}
+		var request dto.ShortenURLRequest
 		if err := c.BodyParser(&request); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 		}
 
-		// // Call the use case to shorten the URL
-		// shortenedURL, err := shortenUseCase.Shorten(request.URL)
-		// if err != nil {
-		// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to shorten URL"})
-		// }
+		response, err := shortenUseCase.Execute(c.Context(), &request)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
 
-		return c.SendStatus(fiber.StatusOK).JSON(fiber.Map{
-			"shortened_url": "http://short.url/" + request.URL,
-		})
+		return c.Status(fiber.StatusCreated).JSON(response)
 	}
 }

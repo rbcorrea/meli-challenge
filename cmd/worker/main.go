@@ -4,10 +4,9 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
-	"github.com/rbcorrea/meli-challenge/internal/application/usecase"
 	"github.com/rbcorrea/meli-challenge/internal/domain/repository"
-	"github.com/rbcorrea/meli-challenge/internal/infrastructure/api"
 	"github.com/rbcorrea/meli-challenge/internal/infrastructure/queue"
 	"github.com/rbcorrea/meli-challenge/internal/infrastructure/repository/mongo"
 	"github.com/redis/go-redis/v9"
@@ -16,7 +15,9 @@ import (
 )
 
 func main() {
-	var ctx = context.Background()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	mongoURI := os.Getenv("MONGODB_URL")
 
@@ -42,17 +43,14 @@ func main() {
 
 	rabbitURL := os.Getenv("RABBITMQ_URL")
 
-	producer, err := queue.NewRabbitMQProducer(rabbitURL)
+	consumer, err := queue.NewConsumer(rabbitURL, repo, redisClient)
 	if err != nil {
-		log.Fatalf("Failed to create RabbitMQ producer: %v", err)
+		log.Fatalf("Failed to create consumer: %v", err)
 	}
 
-	shortenUseCase := usecase.NewShortenURLUseCase(repo, producer, redisClient)
-	searchByCodeUseCase := usecase.NewSearchByCodeUseCase(repo, redisClient)
-	redirectUseCase := usecase.NewRedirectUseCase(repo, redisClient)
-	deleteUseCase := usecase.NewDeleteURLUseCase(repo, redisClient)
+	if err := consumer.Start(context.Background()); err != nil {
+		log.Fatalf("Failed to start consumer: %v", err)
+	}
 
-	app := api.NewApp(shortenUseCase, searchByCodeUseCase, redirectUseCase, deleteUseCase)
-
-	log.Fatal(app.Listen(":8080"))
+	select {}
 }
