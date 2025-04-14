@@ -6,9 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/rbcorrea/meli-challenge/internal/application/usecase"
 	"github.com/rbcorrea/meli-challenge/internal/domain/repository"
-	"github.com/rbcorrea/meli-challenge/internal/infrastructure/api"
 	"github.com/rbcorrea/meli-challenge/internal/infrastructure/queue"
 	"github.com/rbcorrea/meli-challenge/internal/infrastructure/repository/mongo"
 	"github.com/redis/go-redis/v9"
@@ -54,16 +52,14 @@ func main() {
 		rabbitURL = "amqp://guest:guest@rabbitmq/"
 	}
 
-	producer, err := queue.NewRabbitMQProducer(rabbitURL)
+	consumer, err := queue.NewRabbitMQConsumer(rabbitURL, repo, redisClient)
 	if err != nil {
-		log.Fatalf("Failed to create RabbitMQ producer: %v", err)
+		log.Fatalf("Failed to create RabbitMQ consumer: %v", err)
 	}
 
-	shortenUseCase := usecase.NewShortenURLUseCase(repo, producer)
-	listUseCase := usecase.NewListURLsUseCase(redisClient)
-	searchByCodeUseCase := usecase.NewSearchByCodeUseCase(redisClient, repo)
-	deleteUseCase := usecase.NewDeleteURLUseCase(redisClient, repo)
+	if err := consumer.Start(context.Background()); err != nil {
+		log.Fatalf("Failed to start consumer: %v", err)
+	}
 
-	app := api.NewApp(shortenUseCase, listUseCase, searchByCodeUseCase, deleteUseCase)
-	log.Fatal(app.Listen(":8080"))
+	select {}
 }

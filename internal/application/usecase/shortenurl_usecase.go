@@ -2,22 +2,49 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/rbcorrea/meli-challenge/internal/application/dto"
 	"github.com/rbcorrea/meli-challenge/internal/domain/entity"
+	"github.com/rbcorrea/meli-challenge/internal/domain/queue"
+	"github.com/rbcorrea/meli-challenge/internal/domain/repository"
 )
 
 type ShortenURLUseCase struct {
+	repository repository.ShortenURLRepository
+	producer   queue.Producer
 }
 
-func (u *ShortenURLUseCase) Execute(ctx context.Context, originalURL string) (*entity.ShortURL, error) {
+func NewShortenURLUseCase(repository repository.ShortenURLRepository, producer queue.Producer) *ShortenURLUseCase {
+	return &ShortenURLUseCase{
+		repository: repository,
+		producer:   producer,
+	}
+}
+
+func (u *ShortenURLUseCase) Execute(ctx context.Context, request *dto.ShortenURLRequest) (*dto.ShortenURLResponse, error) {
+	existingURL, err := u.repository.FindByOriginalURL(ctx, request.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	if existingURL != nil {
+		return dto.NewShortenURLResponse(existingURL.OriginalURL, existingURL.ShortURL, existingURL.Code, time.Now(), true), nil
+	}
+
 	code := uuid.New().String()
-	shortURL := entity.NewShortURL(originalURL, code)
+	shortURL := entity.NewShortURL(request.URL, code)
 
-	// err := u.Producer.PublishShortenURL(ctx, shortURL)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err = u.repository.Save(ctx, shortURL)
+	if err != nil {
+		return nil, err
+	}
 
-	return shortURL, nil
+	err = u.producer.PublishShortenURL(ctx, shortURL)
+	if err != nil {
+		// TODO: Implementar log
+	}
+
+	return dto.NewShortenURLResponse(shortURL.OriginalURL, shortURL.ShortURL, shortURL.Code, shortURL.CreatedAt, shortURL.IsActive), nil
 }

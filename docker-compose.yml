@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+      - MONGODB_URL=mongodb://mongo:27017
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - meli-challenge-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - REDIS_URL=redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+      - MONGODB_URL=mongodb://mongo:27017
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - meli-challenge-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - meli-challenge-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - meli-challenge-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - meli-challenge-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
+  rabbitmq-data:
+  mongo-data:
+
+networks:
+  meli-challenge-network:
+    driver: bridge
