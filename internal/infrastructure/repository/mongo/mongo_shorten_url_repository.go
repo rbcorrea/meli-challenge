@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rbcorrea/meli-challenge/internal/domain/entity"
 	"github.com/rbcorrea/meli-challenge/internal/domain/repository"
@@ -86,4 +87,22 @@ func (r *MongoShortenURLRepository) Update(ctx context.Context, shortURL string,
 	filter := bson.M{"short_url": shortURL}
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
+}
+
+func (r *MongoShortenURLRepository) IncrementAccessCount(ctx context.Context, code string) error {
+	filter := bson.M{"code": code}
+	update := bson.M{
+		"$inc": bson.M{"access_count": 1},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to increment access count: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("url not found")
+	}
+
+	return nil
 }

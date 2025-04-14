@@ -61,5 +61,4 @@ func main() {
 		log.Fatalf("Failed to start consumer: %v", err)
 	}
 
-	select {}
 }

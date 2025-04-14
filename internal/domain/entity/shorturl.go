@@ -8,14 +8,16 @@ type ShortURL struct {
 	Code        string    `json:"code" bson:"code"`
 	CreatedAt   time.Time `json:"created_at" bson:"created_at"`
 	IsActive    bool      `json:"is_active" bson:"is_active"`
+	AccessCount int       `json:"access_count" bson:"access_count"`
 }
 
 func NewShortURL(originalURL, code string) *ShortURL {
 	return &ShortURL{
 		OriginalURL: originalURL,
-		Code:        code,
 		ShortURL:    "https://me.li/" + code,
+		Code:        code,
 		CreatedAt:   time.Now(),
 		IsActive:    true,
+		AccessCount: 0,
 	}
 }

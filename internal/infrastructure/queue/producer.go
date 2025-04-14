@@ -45,7 +45,6 @@ func NewRabbitMQProducer(url string) (queue.Producer, error) {
 		return nil, fmt.Errorf("failed to declare exchange: %w", err)
 	}
 
-	// Declarar a fila
 	queueName := "meli-shorten-url-queue"
 	log.Printf("Declaring queue %s", queueName)
 
@@ -61,7 +60,6 @@ func NewRabbitMQProducer(url string) (queue.Producer, error) {
 		return nil, fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	// Vincular a fila à exchange
 	routingKey := "url.shorten"
 	log.Printf("Binding queue %s to exchange %s with routing key %s", queueName, exchangeName, routingKey)
 
@@ -95,10 +93,10 @@ func (p *RabbitMQProducer) PublishShortenURL(ctx context.Context, shortURL *enti
 
 	err = p.channel.PublishWithContext(
 		ctx,
-		exchangeName, // exchange
-		routingKey,   // routing key
-		false,        // mandatory
-		false,        // immediate
+		exchangeName,
+		routingKey,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,

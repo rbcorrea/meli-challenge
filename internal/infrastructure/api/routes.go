@@ -9,14 +9,14 @@ import (
 func RegisterRoutes(
 	app *fiber.App,
 	shortenUseCase *usecase.ShortenURLUseCase,
-	listUseCase *usecase.ListURLsUseCase,
 	searchByCodeUseCase *usecase.SearchByCodeUseCase,
+	redirectUseCase *usecase.RedirectUseCase,
 	deleteUseCase *usecase.DeleteURLUseCase,
 ) {
 	app.Get("/health", handler.HealthCheck())
 
 	app.Post("/", handler.ShortenURL(shortenUseCase))
-	app.Get("/", handler.ListURLs(listUseCase))
-	app.Get("/:code", handler.SearchByCode(searchByCodeUseCase))
+	app.Get("/stats/:code", handler.SearchByCode(searchByCodeUseCase))
 	app.Delete("/:code", handler.DeleteURL(deleteUseCase))
+	app.Get("/:code", handler.RedirectByCode(redirectUseCase))
 }

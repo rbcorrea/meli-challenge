@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"time"
 
 	"github.com/rbcorrea/meli-challenge/internal/application/usecase"
 	"github.com/rbcorrea/meli-challenge/internal/domain/repository"
@@ -17,9 +16,7 @@ import (
 )
 
 func main() {
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	var ctx = context.Background()
 
 	mongoURI := os.Getenv("MONGODB_URL")
 	if mongoURI == "" {
@@ -60,10 +57,11 @@ func main() {
 	}
 
 	shortenUseCase := usecase.NewShortenURLUseCase(repo, producer)
-	listUseCase := usecase.NewListURLsUseCase(redisClient)
-	searchByCodeUseCase := usecase.NewSearchByCodeUseCase(redisClient, repo)
+	searchByCodeUseCase := usecase.NewSearchByCodeUseCase(repo)
+	redirectUseCase := usecase.NewRedirectUseCase(redisClient, repo)
 	deleteUseCase := usecase.NewDeleteURLUseCase(redisClient, repo)
 
-	app := api.NewApp(shortenUseCase, listUseCase, searchByCodeUseCase, deleteUseCase)
+	app := api.NewApp(shortenUseCase, searchByCodeUseCase, redirectUseCase, deleteUseCase)
+
 	log.Fatal(app.Listen(":8080"))
 }

@@ -13,8 +13,8 @@ type App struct {
 
 func NewApp(
 	shortenUseCase *usecase.ShortenURLUseCase,
-	listUseCase *usecase.ListURLsUseCase,
 	searchByCodeUseCase *usecase.SearchByCodeUseCase,
+	redirectUseCase *usecase.RedirectUseCase,
 	deleteUseCase *usecase.DeleteURLUseCase,
 ) *App {
 	app := fiber.New(fiber.Config{
@@ -24,7 +24,7 @@ func NewApp(
 	app.Use(recover.New())
 	app.Use(logger.New())
 
-	RegisterRoutes(app, shortenUseCase, listUseCase, searchByCodeUseCase, deleteUseCase)
+	RegisterRoutes(app, shortenUseCase, searchByCodeUseCase, redirectUseCase, deleteUseCase)
 
 	return &App{
 		fiber: app,
