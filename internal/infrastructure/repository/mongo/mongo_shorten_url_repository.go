@@ -83,8 +83,8 @@ func (r *MongoShortenURLRepository) FindByCode(ctx context.Context, code string)
 	return &result, nil
 }
 
-func (r *MongoShortenURLRepository) Update(ctx context.Context, shortURL string, update interface{}) error {
-	filter := bson.M{"short_url": shortURL}
+func (r *MongoShortenURLRepository) Update(ctx context.Context, code string, update interface{}) error {
+	filter := bson.M{"code": code}
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
 }

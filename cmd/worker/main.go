@@ -20,9 +20,6 @@ func main() {
 	defer cancel()
 
 	mongoURI := os.Getenv("MONGODB_URL")
-	if mongoURI == "" {
-		mongoURI = "mongodb://localhost:27017"
-	}
 
 	client, err := mongodriver.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
@@ -34,9 +31,6 @@ func main() {
 	var repo repository.ShortenURLRepository = mongo.NewMongoShortenURLRepository(collection)
 
 	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		redisURL = "redis:6379"
-	}
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: redisURL,
@@ -48,17 +42,15 @@ func main() {
 	defer redisClient.Close()
 
 	rabbitURL := os.Getenv("RABBITMQ_URL")
-	if rabbitURL == "" {
-		rabbitURL = "amqp://guest:guest@rabbitmq/"
-	}
 
-	consumer, err := queue.NewRabbitMQConsumer(rabbitURL, repo, redisClient)
+	consumer, err := queue.NewConsumer(rabbitURL, repo, redisClient)
 	if err != nil {
-		log.Fatalf("Failed to create RabbitMQ consumer: %v", err)
+		log.Fatalf("Failed to create consumer: %v", err)
 	}
 
 	if err := consumer.Start(context.Background()); err != nil {
 		log.Fatalf("Failed to start consumer: %v", err)
 	}
 
+	select {}
 }

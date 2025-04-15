@@ -21,12 +21,6 @@ func RedirectByCode(redirectUseCase *usecase.RedirectUseCase) fiber.Handler {
 			})
 		}
 
-		if !shortURL.IsActive {
-			return c.Status(fiber.StatusGone).JSON(fiber.Map{
-				"error": "URL has been deleted",
-			})
-		}
-
 		if err := redirectUseCase.IncrementAccessCount(c.Context(), code); err != nil {
 			c.Context().Logger().Printf("Failed to increment access count: %v", err)
 		}

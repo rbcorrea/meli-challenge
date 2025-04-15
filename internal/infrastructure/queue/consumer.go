@@ -14,7 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type RabbitMQConsumer struct {
+type Consumer struct {
 	conn       *amqp.Connection
 	channel    *amqp.Channel
 	queue      *amqp.Queue
@@ -24,7 +24,7 @@ type RabbitMQConsumer struct {
 	wg         sync.WaitGroup
 }
 
-func NewRabbitMQConsumer(url string, repository repository.ShortenURLRepository, redis *redis.Client) (*RabbitMQConsumer, error) {
+func NewConsumer(url string, repository repository.ShortenURLRepository, redis *redis.Client) (*Consumer, error) {
 	log.Printf("Connecting to RabbitMQ at %s", url)
 
 	conn, err := amqp.Dial(url)
@@ -38,13 +38,34 @@ func NewRabbitMQConsumer(url string, repository repository.ShortenURLRepository,
 		return nil, fmt.Errorf("failed to open channel: %w", err)
 	}
 
+	exchangeName := "meli-challenge"
+	log.Printf("Declaring exchange %s", exchangeName)
+
+	err = channel.ExchangeDeclare(
+		exchangeName, // name
+		"topic",      // type
+		true,         // durable
+		false,        // auto-deleted
+		false,        // internal
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		channel.Close()
+		conn.Close()
+		return nil, fmt.Errorf("failed to declare exchange: %w", err)
+	}
+
+	queueName := "meli-shorten-url-queue"
+	log.Printf("Declaring queue %s", queueName)
+
 	queue, err := channel.QueueDeclare(
-		"shorten_url",
-		true,
-		false,
-		false,
-		false,
-		nil,
+		queueName, // name
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
 	)
 	if err != nil {
 		channel.Close()
@@ -52,7 +73,23 @@ func NewRabbitMQConsumer(url string, repository repository.ShortenURLRepository,
 		return nil, fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	return &RabbitMQConsumer{
+	routingKey := "url.shorten"
+	log.Printf("Binding queue %s to exchange %s with routing key %s", queueName, exchangeName, routingKey)
+
+	err = channel.QueueBind(
+		queueName,    // queue name
+		routingKey,   // routing key
+		exchangeName, // exchange
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		channel.Close()
+		conn.Close()
+		return nil, fmt.Errorf("failed to bind queue: %w", err)
+	}
+
+	return &Consumer{
 		conn:       conn,
 		channel:    channel,
 		queue:      &queue,
@@ -62,7 +99,7 @@ func NewRabbitMQConsumer(url string, repository repository.ShortenURLRepository,
 	}, nil
 }
 
-func (c *RabbitMQConsumer) Start(ctx context.Context) error {
+func (c *Consumer) Start(ctx context.Context) error {
 	msgs, err := c.channel.Consume(
 		c.queue.Name,
 		"",
@@ -92,8 +129,9 @@ func (c *RabbitMQConsumer) Start(ctx context.Context) error {
 					continue
 				}
 
-				if err := c.redis.Set(ctx, shortURL.Code, shortURL.OriginalURL, 24*time.Hour).Err(); err != nil {
-					fmt.Printf("Failed to save code to Redis: %v\n", err)
+				data, _ := json.Marshal(shortURL)
+				if err := c.redis.Set(ctx, shortURL.Code, data, 24*time.Hour).Err(); err != nil {
+					fmt.Printf("Failed to save to Redis: %v\n", err)
 				}
 
 				if err := c.repository.Save(ctx, &shortURL); err != nil {
@@ -106,7 +144,7 @@ func (c *RabbitMQConsumer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *RabbitMQConsumer) Stop() error {
+func (c *Consumer) Stop() error {
 	close(c.done)
 	c.wg.Wait()
 

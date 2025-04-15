@@ -19,9 +19,6 @@ func main() {
 	var ctx = context.Background()
 
 	mongoURI := os.Getenv("MONGODB_URL")
-	if mongoURI == "" {
-		mongoURI = "mongodb://localhost:27017"
-	}
 
 	client, err := mongodriver.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
@@ -33,9 +30,6 @@ func main() {
 	var repo repository.ShortenURLRepository = mongo.NewMongoShortenURLRepository(collection)
 
 	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		redisURL = "redis:6379"
-	}
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: redisURL,
@@ -47,19 +41,16 @@ func main() {
 	defer redisClient.Close()
 
 	rabbitURL := os.Getenv("RABBITMQ_URL")
-	if rabbitURL == "" {
-		rabbitURL = "amqp://guest:guest@rabbitmq/"
-	}
 
 	producer, err := queue.NewRabbitMQProducer(rabbitURL)
 	if err != nil {
 		log.Fatalf("Failed to create RabbitMQ producer: %v", err)
 	}
 
-	shortenUseCase := usecase.NewShortenURLUseCase(repo, producer)
-	searchByCodeUseCase := usecase.NewSearchByCodeUseCase(repo)
-	redirectUseCase := usecase.NewRedirectUseCase(redisClient, repo)
-	deleteUseCase := usecase.NewDeleteURLUseCase(redisClient, repo)
+	shortenUseCase := usecase.NewShortenURLUseCase(repo, producer, redisClient)
+	searchByCodeUseCase := usecase.NewSearchByCodeUseCase(repo, redisClient)
+	redirectUseCase := usecase.NewRedirectUseCase(repo, redisClient)
+	deleteUseCase := usecase.NewDeleteURLUseCase(repo, redisClient)
 
 	app := api.NewApp(shortenUseCase, searchByCodeUseCase, redirectUseCase, deleteUseCase)
 
