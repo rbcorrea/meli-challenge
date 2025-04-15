@@ -33,13 +33,13 @@ func NewRabbitMQProducer(url string) (queue.Producer, error) {
 	log.Printf("Declaring exchange %s", exchangeName)
 
 	err = ch.ExchangeDeclare(
-		exchangeName, // name
-		"topic",      // type
-		true,         // durable
-		false,        // auto-deleted
-		false,        // internal
-		false,        // no-wait
-		nil,          // arguments
+		exchangeName,
+		"topic",
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to declare exchange: %w", err)
@@ -49,12 +49,12 @@ func NewRabbitMQProducer(url string) (queue.Producer, error) {
 	log.Printf("Declaring queue %s", queueName)
 
 	_, err = ch.QueueDeclare(
-		queueName, // name
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // no-wait
-		nil,       // arguments
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to declare queue: %w", err)
@@ -64,11 +64,11 @@ func NewRabbitMQProducer(url string) (queue.Producer, error) {
 	log.Printf("Binding queue %s to exchange %s with routing key %s", queueName, exchangeName, routingKey)
 
 	err = ch.QueueBind(
-		queueName,    // queue name
-		routingKey,   // routing key
-		exchangeName, // exchange
-		false,        // no-wait
-		nil,          // arguments
+		queueName,
+		routingKey,
+		exchangeName,
+		false,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bind queue: %w", err)

@@ -1,4 +1,4 @@
-# URL Shortener API
+# MeLi Challenge
 
 A URL shortener service that uses Redis for caching, MongoDB for persistence, and RabbitMQ for message queuing.
 
@@ -24,7 +24,7 @@ A URL shortener service that uses Redis for caching, MongoDB for persistence, an
 
 ### Shorten URL
 ```bash
-POST /urls
+POST /
 Content-Type: application/json
 
 {
@@ -40,29 +40,18 @@ Response:
 }
 ```
 
-### List URLs
+### Redirect To Original URL
 ```bash
-GET /urls?page=1&pageSize=10
+GET /:code
 ```
 
 Response:
-```json
-{
-  "urls": [
-    {
-      "original_url": "https://example.com",
-      "short_url": "https://me.li/123e4567-e89b-12d3-a456-426614174000"
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "pageSize": 10
-}
-```
 
-### Search URL by Code
+301 - OriginalURL
+
+### Get URL Stats
 ```bash
-GET /urls/:code
+GET /stats/:cod
 ```
 
 Response:
@@ -72,20 +61,25 @@ Response:
   "short_url": "https://me.li/123e4567-e89b-12d3-a456-426614174000",
   "code": "123e4567-e89b-12d3-a456-426614174000",
   "created_at": "2024-03-14T12:00:00Z",
-  "is_active": true
+  "is_active": true,
+  "access_count": 0
 }
 ```
 
 ### Delete URL
 ```bash
-DELETE /urls/:code
+DELETE /:code
 ```
 
 Response:
 ```json
 {
   "original_url": "https://example.com",
-  "short_url": "https://me.li/123e4567-e89b-12d3-a456-426614174000"
+  "short_url": "https://me.li/123e4567-e89b-12d3-a456-426614174000",
+  "code": "123e4567-e89b-12d3-a456-426614174000",
+  "created_at": "2024-03-14T12:00:00Z",
+  "is_active": false,
+  "access_count": 0
 }
 ```
 
